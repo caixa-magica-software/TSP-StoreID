@@ -5,8 +5,11 @@ const path = require('path');
 const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
-const http = require('http');
+const https = require('https');
 const fs = require('fs');
+const privateKey = fs.readFileSync('/ssl/tls.key', 'utf8');
+const certificate = fs.readFileSync('/ssl/tls.crt', 'utf8');
+const credentials = {key: privateKey, cert: certificate};
 const index = require('./routes/index');
 const store = require('./routes/store');
 const app = express();
@@ -55,5 +58,5 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
-let server = http.createServer(app);
+let server = https.createServer(credentials, app);
 server.listen(3000);
