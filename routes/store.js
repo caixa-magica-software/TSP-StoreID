@@ -5,7 +5,8 @@ const router = express.Router();
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const web3 = require('web3');
+const Web3 = require('web3');
+const web3 = new Web3();
 const conn = require('./../models/store');
 
 function isBase64(str) {
