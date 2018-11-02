@@ -33,7 +33,7 @@ const model = conn.model('tsp', schema);
 
 let tsp = {
   getInfoById: function (criteria, callback) {
-    return model.findOne(criteria , { '_id': false, '__v': false }, callback);
+    return model.findOne(criteria , { '_id': 0, 'document_id': 1, 'creationDate': 1 }, callback);
   },
   addOrUpdateInfo: function (criteria, data, callback) {
     return model.findOneAndUpdate(criteria, { $set : data }, { 'upsert': true, 'new': true }, callback );
