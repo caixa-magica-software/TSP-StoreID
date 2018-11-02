@@ -5,7 +5,17 @@ const router = express.Router();
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const web3 = require('web3');
 const conn = require('./../models/store');
+
+function isBase64(str) {
+	try {
+		return Buffer.from(Buffer.from(str, 'base64').toString()).toString('base64') == str;
+
+	} catch (err) {
+		return false;
+	}
+}
 
 router.get('/', function(req, res, next) {
 	let hash = (req.query.hash != null) ? req.query.hash : null;
@@ -26,6 +36,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/', function(req, res, next) {
+	console.log('body: ', req.body);
 	let request = req.body;
 	let criteria = {
 		'hash': request.hash,
@@ -34,19 +45,35 @@ router.post('/', function(req, res, next) {
 
 	delete request.hash;
 	delete request.wallet_address;
+	let isValid = true;
 
-	let pubkey = new Buffer(request.metamask_pubkey, 'base64');
-	let isValid = crypto.createVerify('sha256').update(criteria.hash).verify(pubkey, request.hash_metamask, 'base64');
+	// Validar hash em base64
+	console.log('Validate if hash is base64 encoded');
+	let validBase64 = isBase64(criteria.hash);
+	console.log(validBase64);
+	isValid = isValid && validBase64;
+
+	// Validar se assinatura corresponde ao hash
+	console.log('Validate if the signature matches the hash');
+	let signedWithAddress = web3.eth.accounts.recover(criteria.hash, request.hash_metamask);
+	let validAddr = (criteria.wallet_address === signedWithAddress) ? true : false;
+	console.log(validAddr);
+	isValid = isValid && validAddr;
 
 	if (isValid) {
 		conn.addOrUpdateInfo(criteria, request, function(err, result) {
-			if (err) return res.status(500).send({ "data": null, "message": err });
+			if (err) {
+				console.error('ERROR: ', err);
+				res.status(500).send({ "data": null, "message": err });
 
-			res.status(200).send({ "data": null, "message": "Data stored" });
+			} else {
+				res.status(200).send({ "data": null, "message": "Data stored" });
+			}
 		});
 
 	} else {
-		return res.status(500).send({ "data": null, "message": 'Validation failed for hash: ' + criteria.hash + ' and wallet address: ' + criteria.wallet_address });
+		console.error('ERROR: Validation failed');
+		res.status(500).send({ "data": null, "message": 'Validation failed for hash: ' + criteria.hash + ' and wallet address: ' + criteria.wallet_address });
 	}
 });
 
